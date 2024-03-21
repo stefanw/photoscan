@@ -12,5 +12,5 @@ Command line:
 cargo run --release pics/test_02.jpg out/
 ```
 
-Web: open test.html
+Web: Run web server and open test.html
 

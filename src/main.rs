@@ -33,10 +33,10 @@ fn main() {
     }
 
     // Load image and convert to grayscale
-    let input_image = open(input_path)
-        .expect(&format!("Could not load image at {:?}", input_path))
-        .blur(options.sigma_blur)
-        .to_luma8();
+    let original_image =
+        open(input_path).expect(&format!("Could not load image at {:?}", input_path));
+
+    let input_image = original_image.blur(options.sigma_blur).to_luma8();
 
     // Save grayscale image in output directory
     let gray_path = output_dir.join("grey.png");
@@ -63,15 +63,19 @@ fn main() {
     let lines: Vec<imageproc::hough::PolarLine> =
         imageproc::hough::detect_lines(&edges, options.line_detection_options);
     let polar_lines = draw_polar_lines(&color_edges, &lines, red);
-    println!("Found polar lines {:?}", lines);
+    log::info!("Found polar lines {:?}", lines);
     let lines_path = output_dir.join("polar_lines.png");
     polar_lines.save(&lines_path).unwrap();
 
     let intersections = find_hough_intersections(&edges, &options);
 
     if let Some(points) = intersections {
-        println!("Found four points {:?}", points);
+        log::info!("Found four points {:?}", points);
         points.draw_mut(&mut color_edges, green);
+
+        let original_color = original_image.to_rgba8();
+        let result = scan::transform_quadrilateral(&original_color, &points, 1.0);
+        result.save(output_dir.join("result.png")).unwrap();
     }
 
     // Save lines image in output directory

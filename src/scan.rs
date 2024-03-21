@@ -24,7 +24,7 @@ impl ScanOptions {
             rdp_epsilon: 1.0,
             contour_threshold: 200,
             line_detection_options: LineDetectionOptions {
-                vote_threshold: 100,
+                vote_threshold: 60,
                 suppression_radius: 8,
             },
             debug: true,
@@ -38,9 +38,7 @@ pub struct Point(pub u32, pub u32);
 
 impl Point {
     fn distance(&self, other: &Point) -> f32 {
-        let x = (self.0 as f32 - other.0 as f32).powi(2);
-        let y = (self.1 as f32 - other.1 as f32).powi(2);
-        (x + y).sqrt()
+        euclidean_distance(self, other)
     }
 
     fn times_ratio(&self, ratio: f32) -> Point {
@@ -176,6 +174,7 @@ pub fn find_hough_intersections(
                 && (line.r - item.0.r).abs() < r_difference
             {
                 item.1.push(line);
+                // Store updated representative PolarLine for the cluster
                 let mean_angle: u32 =
                     item.1.iter().map(|l| l.angle_in_degrees).sum::<u32>() / item.1.len() as u32;
                 let mean_r = item.1.iter().map(|l| l.r).sum::<f32>() / item.1.len() as f32;
@@ -224,12 +223,13 @@ pub fn find_hough_intersections(
         });
     });
 
-    println!("Found intersections {:?}", intersections);
+    log::debug!("Found intersections {:?}", intersections);
 
     if intersections.len() != 4 {
         return None;
     }
 
+    // Assign named corners to intersections
     log::debug!("Found {:?} intersections", intersections);
 
     let mut sorted_by_x = intersections.clone();
@@ -275,10 +275,12 @@ pub fn polarline_intersection(
     let divisor = (a_radians - b_radians).sin();
     let x = (b.r * a_radians.sin() - a.r * b_radians.sin()) / divisor;
     let y = (a.r * b_radians.cos() - b.r * a_radians.cos()) / divisor;
+
     // Is the intersection point outside the image?
     if x < 0.0 || x > width as f32 || y < 0.0 || y > height as f32 {
         return None;
     }
+
     Some(Point(x as u32, y as u32))
 }
 
@@ -298,6 +300,7 @@ pub fn transform_quadrilateral(
     // x-coordiates or the top-right and top-left x-coordinates
 
     let quadrilateral = quadrilateral.times_ratio(ratio);
+
     log::debug!("Transforming quadrilateral {:?}", quadrilateral);
     let width = quadrilateral
         .bottom_right

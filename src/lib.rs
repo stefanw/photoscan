@@ -44,14 +44,7 @@ pub fn transform_paper(
 
     let buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
         image::RgbaImage::from_raw(width, height, buf.into()).unwrap();
-    // let quad = quadrilateral.unwrap_or_else(|| {
-    //     Quadrilateral::new(
-    //         scan::Point(0, 0),
-    //         scan::Point(width, 0),
-    //         scan::Point(width, height),
-    //         scan::Point(0, height),
-    //     )
-    // });
+
     let result = scan::transform_quadrilateral(&buffer, &quadrilateral, ratio);
     let width = result.width();
     let height = result.height();
